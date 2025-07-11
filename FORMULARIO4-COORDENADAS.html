@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formulario Técnico - Preoperacionales</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #e9edf4;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 40px auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      text-align: center;
+      color: #003366;
+      margin-bottom: 25px;
+      font-size: 20px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 18px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    input[type="submit"] {
+      width: 100%;
+      background-color: #004080;
+      color: white;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #0059b3;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        margin: 20px 10px;
+        padding: 15px;
+      }
+
+      h2 {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- LOGO -->
+    <div style="text-align: center; margin-bottom: 20px;">
+      <img src="https://static.wixstatic.com/media/ac1ed1_2f7866fceffb4207a501cc64eb2f6deb~mv2.png/v1/crop/x_0,y_212,w_1080,h_612/fill/w_556,h_315,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/PDR2.png" alt="Logo de la empresa" style="max-width: 180px; height: auto;">
+    </div>
+
+    <!-- TÍTULO -->
+    <h2>Preoperacionales</h2>
+
+    <!-- FORMULARIO -->
+    <form action="https://ftth-n8n2.pzveh5.easypanel.host/webhook/preoperacionales" method="POST" enctype="multipart/form-data">
+      <label for="nombre_tecnico">Nombre del técnico:</label>
+      <input type="text" name="nombre_tecnico" id="nombre_tecnico" required>
+
+      <label for="ciudad">Ciudad:</label>
+      <input type="text" name="ciudad" id="ciudad" required>
+
+      <label for="latitud">Latitud:</label>
+      <input type="text" name="latitud" id="latitud" readonly>
+
+      <label for="longitud">Longitud:</label>
+      <input type="text" name="longitud" id="longitud" readonly>
+
+      <label for="fechaHora">Fecha y hora actual:</label>
+      <input type="text" name="fecha_hora" id="fechaHora" readonly>
+
+      <label for="foto1">Foto 1:</label>
+      <input type="file" name="foto1" id="foto1" accept="image/*" capture="environment" required>
+
+      <label for="foto2">Foto 2:</label>
+      <input type="file" name="foto2" id="foto2" accept="image/*" capture="environment">
+
+      <label for="foto3">Foto 3:</label>
+      <input type="file" name="foto3" id="foto3" accept="image/*" capture="environment">
+
+      <label for="observaciones">Observaciones:</label>
+      <textarea name="observaciones" id="observaciones" rows="4"></textarea>
+
+      <input type="submit" value="Enviar">
+    </form>
+  </div>
+
+  <script>
+    // Fecha y hora actual
+    const ahora = new Date();
+    const año = ahora.getFullYear();
+    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+    const dia = String(ahora.getDate()).padStart(2, '0');
+    const hora = String(ahora.getHours()).padStart(2, '0');
+    const minutos = String(ahora.getMinutes()).padStart(2, '0');
+    const segundos = String(ahora.getSeconds()).padStart(2, '0');
+    const fechaFormateada = `${año}-${mes}-${dia} ${hora}:${minutos}:${segundos}`;
+    document.getElementById("fechaHora").value = fechaFormateada;
+
+    // Coordenadas actuales
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        function(position) {
+          document.getElementById("latitud").value = position.coords.latitude.toFixed(6);
+          document.getElementById("longitud").value = position.coords.longitude.toFixed(6);
+        },
+        function(error) {
+          console.warn("No se pudo obtener la ubicación:", error.message);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      alert("Este navegador no soporta geolocalización.");
+    }
+  </script>
+</body>
+</html>
