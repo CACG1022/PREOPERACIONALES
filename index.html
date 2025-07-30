@@ -251,9 +251,63 @@
         );
       }
     });
+
+    // Función para agregar coordenadas a la foto (marca de agua)
+    function marcarFotoConCoordenadas(inputId) {
+      document.getElementById(inputId).addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!/^image\//.test(file.type)) {
+          alert("Por favor selecciona una imagen.");
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const img = new Image();
+          img.onload = function() {
+            // Crear canvas del mismo tamaño que la foto
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+
+            // Escribir coordenadas sobre la foto
+            const lat = document.getElementById("latitud").value || "Lat: ?";
+            const lng = document.getElementById("longitud").value || "Lng: ?";
+            ctx.font = Math.max(Math.round(img.width/22), 18) + "px Arial";
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            const text = `Lat: ${lat}   Lng: ${lng}`;
+            const textWidth = ctx.measureText(text).width;
+            const padding = 15;
+            const rectHeight = parseInt(ctx.font,10) + 20;
+            ctx.fillRect(0, canvas.height - rectHeight, canvas.width, rectHeight);
+            ctx.fillStyle = "#fff";
+            ctx.fillText(text, padding, canvas.height - rectHeight/2 + 7);
+
+            // Convertir el canvas a un blob para enviar en el formulario
+            canvas.toBlob(function(blob) {
+              // Crear un nuevo File para reemplazar el original
+              const newFile = new File([blob], file.name, {type: file.type});
+              // Crear un nuevo DataTransfer para reemplazar el archivo en el input
+              const dataTransfer = new DataTransfer();
+              dataTransfer.items.add(newFile);
+              document.getElementById(inputId).files = dataTransfer.files;
+            }, file.type, 0.95);
+          };
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    // Activar para cada foto
+    marcarFotoConCoordenadas("foto1");
+    marcarFotoConCoordenadas("foto2");
+    marcarFotoConCoordenadas("foto3");
   </script>
 </body>
 </html>
+
 
 
 
