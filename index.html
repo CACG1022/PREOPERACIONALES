@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Formulario Técnico - Preoperacionales</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -69,12 +70,6 @@
       margin: 0 auto 10px auto;
       display: none;
     }
-    #barcode-result {
-      margin-bottom: 10px;
-      font-size: 17px;
-      color: #267d27;
-      font-weight: bold;
-    }
     .scan-btn {
       width: 100%;
       padding: 10px;
@@ -90,13 +85,19 @@
     .scan-btn:hover {
       background: #007b3c;
     }
+    #map { 
+      height: 220px; 
+      margin-bottom: 16px; 
+      border-radius: 8px; 
+    }
     @media (max-width: 600px) {
       .container { margin: 20px 10px; padding: 15px; }
       h2 { font-size: 18px; }
       #reader { max-width: 100vw; }
     }
   </style>
-  <!-- Cargamos la librería Html5Qrcode desde CDN -->
+  <!-- Librerías externas -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
@@ -113,10 +114,13 @@
       <input type="text" name="nombre_tecnico" id="nombre_tecnico" required>
       <label for="ciudad">Ciudad:</label>
       <input type="text" name="ciudad" id="ciudad" required>
+      <!-- Mapa y coordenadas -->
+      <label>Ubicación en mapa:</label>
+      <div id="map"></div>
       <label for="latitud">Latitud:</label>
-      <input type="text" name="latitud" id="latitud" required>
+      <input type="text" name="latitud" id="latitud" required readonly>
       <label for="longitud">Longitud:</label>
-      <input type="text" name="longitud" id="longitud" required>
+      <input type="text" name="longitud" id="longitud" required readonly>
       <label for="fechaHora">Fecha y hora actual:</label>
       <input type="text" name="fecha_hora" id="fechaHora" readonly>
       <label for="foto1">Foto 1:</label>
@@ -127,13 +131,13 @@
       <input type="file" name="foto3" id="foto3" accept="image/*" capture="environment">
       <label for="observaciones">Observaciones:</label>
       <textarea name="observaciones" id="observaciones" rows="4"></textarea>
-
       <!-- Sección para escanear código de barras -->
       <div class="barcode-section">
-        <label for="barcode">Código escaneado:</label>
+        <label for="barcode">Código escaneado (QR o Barras):</label>
         <input type="text" name="barcode" id="barcode" readonly>
         <div id="reader"></div>
-        <button type="button" class="scan-btn" id="scan-barcode-btn">Escanear código de barras</button>
+        <button type="button" class="scan-btn" id="scan-barcode-btn">Escanear código de barras o QR</button>
+        <div style="font-size:12px;color:#555;margin-top:5px;">Coloca el código bien enfocado y con buena luz. Puedes escanear códigos de barras largos (Code128, EAN-13, etc.) o QR.</div>
       </div>
       <input type="submit" value="Enviar">
     </form>
@@ -150,15 +154,41 @@
     const fechaFormateada = `${año}-${mes}-${dia} ${hora}:${minutos}:${segundos}`;
     document.getElementById("fechaHora").value = fechaFormateada;
 
-    // Coordenadas actuales
+    // Mapa y geolocalización
+    let latField = document.getElementById("latitud");
+    let lngField = document.getElementById("longitud");
+    let map, marker;
+
+    function initMap(lat, lng) {
+      map = L.map('map').setView([lat, lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 19,
+      }).addTo(map);
+      marker = L.marker([lat, lng], {draggable: true}).addTo(map);
+      marker.on('dragend', function (e) {
+        let pos = marker.getLatLng();
+        latField.value = pos.lat.toFixed(6);
+        lngField.value = pos.lng.toFixed(6);
+      });
+    }
+
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         function(position) {
-          document.getElementById("latitud").value = position.coords.latitude.toFixed(6);
-          document.getElementById("longitud").value = position.coords.longitude.toFixed(6);
+          let lat = position.coords.latitude;
+          let lng = position.coords.longitude;
+          latField.value = lat.toFixed(6);
+          lngField.value = lng.toFixed(6);
+          initMap(lat, lng);
         },
         function(error) {
-          console.warn("No se pudo obtener la ubicación:", error.message);
+          // Si falla, posición por defecto Bogotá
+          let lat = 4.60971, lng = -74.08175;
+          latField.value = lat.toFixed(6);
+          lngField.value = lng.toFixed(6);
+          initMap(lat, lng);
+          alert("No se pudo obtener la ubicación: " + error.message);
         },
         {
           enableHighAccuracy: true,
@@ -167,6 +197,11 @@
         }
       );
     } else {
+      // Si no soporta geolocalización
+      let lat = 4.60971, lng = -74.08175;
+      latField.value = lat.toFixed(6);
+      lngField.value = lng.toFixed(6);
+      initMap(lat, lng);
       alert("Este navegador no soporta geolocalización.");
     }
 
@@ -181,11 +216,10 @@
         html5QrcodeScanner.start(
           { facingMode: "environment" },
           {
-            fps: 10,    // Velocidad de escaneo
-            qrbox: 200  // Tamaño de la caja de escaneo
+            fps: 10,
+            qrbox: 200
           },
           (decodedText, decodedResult) => {
-            // Resultado OK
             document.getElementById('barcode').value = decodedText;
             html5QrcodeScanner.stop().then(() => {
               readerDiv.style.display = "none";
@@ -220,4 +254,5 @@
   </script>
 </body>
 </html>
+
 
