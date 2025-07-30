@@ -90,10 +90,22 @@
       margin-bottom: 16px; 
       border-radius: 8px; 
     }
+    .preview-img {
+      display: block;
+      max-width: 100%;
+      max-height: 180px;
+      margin: 7px auto 16px auto;
+      border-radius: 6px;
+      border: 1px solid #bbb;
+      box-shadow: 0 1px 5px #ccc;
+      background: #f8f8f8;
+      object-fit: contain;
+    }
     @media (max-width: 600px) {
       .container { margin: 20px 10px; padding: 15px; }
       h2 { font-size: 18px; }
       #reader { max-width: 100vw; }
+      .preview-img { max-height: 110px; }
     }
   </style>
   <!-- Librerías externas -->
@@ -123,12 +135,19 @@
       <input type="text" name="longitud" id="longitud" required readonly>
       <label for="fechaHora">Fecha y hora actual:</label>
       <input type="text" name="fecha_hora" id="fechaHora" readonly>
+
       <label for="foto1">Foto 1:</label>
       <input type="file" name="foto1" id="foto1" accept="image/*" capture="environment" required>
+      <img id="preview-foto1" class="preview-img" style="display:none;" alt="Previsualización Foto 1">
+      
       <label for="foto2">Foto 2:</label>
       <input type="file" name="foto2" id="foto2" accept="image/*" capture="environment">
+      <img id="preview-foto2" class="preview-img" style="display:none;" alt="Previsualización Foto 2">
+
       <label for="foto3">Foto 3:</label>
       <input type="file" name="foto3" id="foto3" accept="image/*" capture="environment">
+      <img id="preview-foto3" class="preview-img" style="display:none;" alt="Previsualización Foto 3">
+
       <label for="observaciones">Observaciones:</label>
       <textarea name="observaciones" id="observaciones" rows="4"></textarea>
       <!-- Sección para escanear código de barras -->
@@ -252,13 +271,17 @@
       }
     });
 
-    // Función para agregar coordenadas a la foto (marca de agua)
-    function marcarFotoConCoordenadas(inputId) {
+    // Función para agregar coordenadas a la foto y previsualizar
+    function marcarFotoConCoordenadas(inputId, previewId) {
       document.getElementById(inputId).addEventListener("change", function(e) {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+          document.getElementById(previewId).style.display = "none";
+          return;
+        }
         if (!/^image\//.test(file.type)) {
           alert("Por favor selecciona una imagen.");
+          document.getElementById(previewId).style.display = "none";
           return;
         }
         const reader = new FileReader();
@@ -278,18 +301,18 @@
             ctx.font = Math.max(Math.round(img.width/22), 18) + "px Arial";
             ctx.fillStyle = "rgba(0,0,0,0.5)";
             const text = `Lat: ${lat}   Lng: ${lng}`;
-            const textWidth = ctx.measureText(text).width;
-            const padding = 15;
             const rectHeight = parseInt(ctx.font,10) + 20;
             ctx.fillRect(0, canvas.height - rectHeight, canvas.width, rectHeight);
             ctx.fillStyle = "#fff";
-            ctx.fillText(text, padding, canvas.height - rectHeight/2 + 7);
+            ctx.fillText(text, 15, canvas.height - rectHeight/2 + 7);
+
+            // Mostrar preview
+            document.getElementById(previewId).src = canvas.toDataURL(file.type, 0.92);
+            document.getElementById(previewId).style.display = "block";
 
             // Convertir el canvas a un blob para enviar en el formulario
             canvas.toBlob(function(blob) {
-              // Crear un nuevo File para reemplazar el original
               const newFile = new File([blob], file.name, {type: file.type});
-              // Crear un nuevo DataTransfer para reemplazar el archivo en el input
               const dataTransfer = new DataTransfer();
               dataTransfer.items.add(newFile);
               document.getElementById(inputId).files = dataTransfer.files;
@@ -301,9 +324,9 @@
       });
     }
     // Activar para cada foto
-    marcarFotoConCoordenadas("foto1");
-    marcarFotoConCoordenadas("foto2");
-    marcarFotoConCoordenadas("foto3");
+    marcarFotoConCoordenadas("foto1", "preview-foto1");
+    marcarFotoConCoordenadas("foto2", "preview-foto2");
+    marcarFotoConCoordenadas("foto3", "preview-foto3");
   </script>
 </body>
 </html>
