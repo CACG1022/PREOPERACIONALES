@@ -271,7 +271,7 @@
       }
     });
 
-    // Función para agregar coordenadas a la foto y previsualizar
+    // Función para agregar coordenadas, fecha y hora a la foto y previsualizar
     function marcarFotoConCoordenadas(inputId, previewId) {
       document.getElementById(inputId).addEventListener("change", function(e) {
         const file = e.target.files[0];
@@ -295,16 +295,42 @@
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0);
 
-            // Escribir coordenadas sobre la foto
-            const lat = document.getElementById("latitud").value || "Lat: ?";
-            const lng = document.getElementById("longitud").value || "Lng: ?";
-            ctx.font = Math.max(Math.round(img.width/22), 18) + "px Arial";
-            ctx.fillStyle = "rgba(0,0,0,0.5)";
-            const text = `Lat: ${lat}   Lng: ${lng}`;
-            const rectHeight = parseInt(ctx.font,10) + 20;
+            // Obtener datos
+            const lat = document.getElementById("latitud").value || "?";
+            const lng = document.getElementById("longitud").value || "?";
+
+            // Fecha y hora
+            let fechaHora = document.getElementById("fechaHora").value;
+            if (!fechaHora) {
+              // Alternativa si el campo está vacío
+              const ahora = new Date();
+              const año = ahora.getFullYear();
+              const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+              const dia = String(ahora.getDate()).padStart(2, '0');
+              const hora = String(ahora.getHours()).padStart(2, '0');
+              const minutos = String(ahora.getMinutes()).padStart(2, '0');
+              const segundos = String(ahora.getSeconds()).padStart(2, '0');
+              fechaHora = `${año}-${mes}-${dia} ${hora}:${minutos}:${segundos}`;
+            }
+            const [fecha, hora] = fechaHora.split(" ");
+
+            // Configurar fuente y barra
+            const fontSize = Math.max(Math.round(img.width/22), 19);
+            ctx.font = fontSize + "px Arial";
+            const lineHeight = fontSize + 8;
+            const padding = 16;
+            const text1 = `Lat: ${lat}   Lng: ${lng}`;
+            const text2 = `Fecha: ${fecha || ""}   Hora: ${hora || ""}`;
+            const rectHeight = lineHeight * 2 + padding;
+
+            // Barra gris más alta
+            ctx.fillStyle = "rgba(0,0,0,0.50)";
             ctx.fillRect(0, canvas.height - rectHeight, canvas.width, rectHeight);
+
+            // Dibujar textos
             ctx.fillStyle = "#fff";
-            ctx.fillText(text, 15, canvas.height - rectHeight/2 + 7);
+            ctx.fillText(text1, padding, canvas.height - rectHeight + lineHeight);
+            ctx.fillText(text2, padding, canvas.height - rectHeight + lineHeight*2);
 
             // Mostrar preview
             document.getElementById(previewId).src = canvas.toDataURL(file.type, 0.92);
@@ -330,6 +356,7 @@
   </script>
 </body>
 </html>
+
 
 
 
