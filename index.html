@@ -271,7 +271,34 @@
       }
     });
 
-    // Función para agregar coordenadas, fecha y hora a la foto y previsualizar
+    // Redimensionar imagen manteniendo proporción hasta 1MP
+    function getResizedDimensions(width, height, maxPixels=1000000) {
+      const totalPixels = width * height;
+      if (totalPixels <= maxPixels) return {width, height};
+      const ratio = Math.sqrt(maxPixels / totalPixels);
+      return {
+        width: Math.round(width * ratio),
+        height: Math.round(height * ratio)
+      };
+    }
+
+    // Comprimir el canvas (JPEG) hasta que pese <2MB
+    function compressCanvasToMaxSize(canvas, mimeType, maxBytes, callback) {
+      let quality = 0.92;
+      function tryCompress() {
+        canvas.toBlob(function(blob) {
+          if (blob.size <= maxBytes || quality <= 0.50) {
+            callback(blob);
+          } else {
+            quality -= 0.05;
+            canvas.toBlob(arguments.callee, mimeType, quality);
+          }
+        }, mimeType, quality);
+      }
+      tryCompress();
+    }
+
+    // Función para agregar coordenadas, fecha y hora a la foto, redimensionar, comprimir y previsualizar
     function marcarFotoConCoordenadas(inputId, previewId) {
       document.getElementById(inputId).addEventListener("change", function(e) {
         const file = e.target.files[0];
@@ -288,21 +315,19 @@
         reader.onload = function(evt) {
           const img = new Image();
           img.onload = function() {
-            // Crear canvas del mismo tamaño que la foto
+            // 1. Redimensionar si supera 1MP
+            let {width, height} = getResizedDimensions(img.width, img.height, 1000000);
             const canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
+            canvas.width = width;
+            canvas.height = height;
             const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, width, height);
 
-            // Obtener datos
+            // 2. Agregar marca de agua
             const lat = document.getElementById("latitud").value || "?";
             const lng = document.getElementById("longitud").value || "?";
-
-            // Fecha y hora
             let fechaHora = document.getElementById("fechaHora").value;
             if (!fechaHora) {
-              // Alternativa si el campo está vacío
               const ahora = new Date();
               const año = ahora.getFullYear();
               const mes = String(ahora.getMonth() + 1).padStart(2, '0');
@@ -312,43 +337,41 @@
               const segundos = String(ahora.getSeconds()).padStart(2, '0');
               fechaHora = `${año}-${mes}-${dia} ${hora}:${minutos}:${segundos}`;
             }
-            const [fecha, hora] = fechaHora.split(" ");
-
-            // Configurar fuente y barra
-            const fontSize = Math.max(Math.round(img.width/22), 19);
+            const [fecha, horaT] = fechaHora.split(" ");
+            const fontSize = Math.max(Math.round(width/22), 19);
             ctx.font = fontSize + "px Arial";
             const lineHeight = fontSize + 8;
             const padding = 16;
             const text1 = `Lat: ${lat}   Lng: ${lng}`;
-            const text2 = `Fecha: ${fecha || ""}   Hora: ${hora || ""}`;
+            const text2 = `Fecha: ${fecha || ""}   Hora: ${horaT || ""}`;
             const rectHeight = lineHeight * 2 + padding;
-
-            // Barra gris más alta
             ctx.fillStyle = "rgba(0,0,0,0.50)";
             ctx.fillRect(0, canvas.height - rectHeight, canvas.width, rectHeight);
-
-            // Dibujar textos
             ctx.fillStyle = "#fff";
             ctx.fillText(text1, padding, canvas.height - rectHeight + lineHeight);
             ctx.fillText(text2, padding, canvas.height - rectHeight + lineHeight*2);
 
-            // Mostrar preview
-            document.getElementById(previewId).src = canvas.toDataURL(file.type, 0.92);
-            document.getElementById(previewId).style.display = "block";
+            // 3. Comprimir y mostrar
+            compressCanvasToMaxSize(canvas, file.type === "image/png" ? "image/png" : "image/jpeg", 2*1024*1024, function(blob) {
+              // Mostrar preview
+              const url = URL.createObjectURL(blob);
+              const imgPreview = document.getElementById(previewId);
+              imgPreview.src = url;
+              imgPreview.style.display = "block";
 
-            // Convertir el canvas a un blob para enviar en el formulario
-            canvas.toBlob(function(blob) {
-              const newFile = new File([blob], file.name, {type: file.type});
+              // Reemplazar archivo para enviar
+              const newFile = new File([blob], file.name.replace(/\.(jpg|jpeg|png)$/i, ".jpg"), {type: "image/jpeg"});
               const dataTransfer = new DataTransfer();
               dataTransfer.items.add(newFile);
               document.getElementById(inputId).files = dataTransfer.files;
-            }, file.type, 0.95);
+            });
           };
           img.src = evt.target.result;
         };
         reader.readAsDataURL(file);
       });
     }
+
     // Activar para cada foto
     marcarFotoConCoordenadas("foto1", "preview-foto1");
     marcarFotoConCoordenadas("foto2", "preview-foto2");
@@ -356,6 +379,7 @@
   </script>
 </body>
 </html>
+
 
 
 
